@@ -10,6 +10,21 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfile
 
+class IP_Manager(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.geometry = ('400x200')
+        self.change_ip_button = ttk.Button(self, text='Set IP', command=lambda:self.change_ip())
+        self.current_IP = "localhost"
+        self.server_IP = tk.StringVar()
+        self.IP_entry = tk.Entry(self, textvariable=self.server_IP)
+        self.IP_entry.grid(row=0, column=0, pady=10)
+        self.change_ip_button.grid(row=1, column=0, pady=10)
+        self.wm_title("IP Manager")
+    def change_ip(self):
+        self.current_IP = self.server_IP.get()
+
+
 class Network(tk.Tk):
     def __init__(self, host, port):
         super().__init__()
@@ -23,7 +38,8 @@ class Network(tk.Tk):
         self.connect_server()
 
         # Create window elements
-        self.title = ("Image Network")
+        self.title = "Image Network"
+        self.title_thread = ""
         self.geometry = ('400x200')
         self.filepath = ""
         
@@ -56,27 +72,33 @@ class Network(tk.Tk):
         self.get_file_button = ttk.Button(self, text="Get File", command=lambda:self.get_file())
         self.get_file_button.grid(row=3, column=4, pady=10)
 
+        self.wm_title(f"{self.title}")
+
     def connect_server(self):
         self.sock = socket.socket()
-        print(f"[+] Connecting to {self.HOST}:{self.PORT}")
+        # print(f"[+] Connecting to {self.HOST}:{self.PORT}")
         self.sock.connect((self.HOST, self.PORT))
-        print("[+] Connected.")
+        # print("[+] Connected.")
+        # self.title_thread = self.sock.recv(self.buffer_size).decode()
+        # self.title_thread = int(self.title_thread) + 1
+        # self.wm_title(f"{self.title}: {self.title_thread}")
+        # print(f"[+] Connected thread: {self.title_thread}")
 
     # open a file explorer, and allow the user to choose a file from their computer.
     def open_file(self):
         self.filepath = askopenfile(mode='r').name
         # self.filepath = self.filepath.replace("'","").replace("name=", "")
-        print(self.filepath)
+        # print(self.filepath)
         if self.filepath is not None:
             pass
 
     # sends a file to the server to be saved in the database
     def send_file(self):
-        print("getting name")
+        # print("getting name")
         name = self.image_name.get().replace(" ", "_")
         extension = str(self.filepath).split(".")[1]
         filesize = os.path.getsize(self.filepath)
-        print("Send file")
+        # print("Send file")
         self.sock.send(f"save,{name}.{extension},{filesize}".encode())
         # Make while loop to send packages of bytes to server.
         with open(self.filepath, "rb") as f:
@@ -98,6 +120,7 @@ class Network(tk.Tk):
         # files = files.split(",")
         self.file_list.set(files)
         # print(files)
+        self.connect_server()
 
     # gets a file from the server
     def get_file(self):
@@ -106,12 +129,12 @@ class Network(tk.Tk):
         self.sock.sendall(data.encode())
 
         recieved = self.sock.recv(self.buffer_size).decode()
-        print(recieved)
+        # print(recieved)
         name, size = recieved.split(",")
         size = int(size)
         name = str(Path.home()) + "\Downloads\\" + name
         with open(name, "wb") as f:
-            print("saving file")
+            # print("saving file")
             while True:
                 # print("in-while")
                 bytes_read = self.sock.recv(self.buffer_size)
@@ -119,14 +142,17 @@ class Network(tk.Tk):
                     break
                 f.write(bytes_read)
         # self.sock.close()
-        print("opening file")
+        # print("opening file")
         image = Image.open(name)
         image.show()
         self.connect_server()
 
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
+    ipManager = IP_Manager()
+    ipManager.mainloop()
+    HOST = ipManager.current_IP
+    PORT = 9999
     Image_Network = Network(HOST, PORT)
     Image_Network.mainloop()
     # Image_Network.sock.close()
